@@ -1,15 +1,54 @@
-import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 
 import { useCart } from "@/lib/cart";
+import { createOrder } from "@/lib/orders.functions";
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
 export function CartDrawer() {
   const { items, open, setOpen, setQty, remove, total, clear } = useCart();
   const [placed, setPlaced] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const placeOrder = useServerFn(createOrder);
 
-  if (!open) return null;
+  const submit = async () => {
+    setError(null);
+    if (name.trim().length < 2 || phone.trim().length < 5) {
+      setError("Please enter your name and phone number.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await placeOrder({
+        data: {
+          customerName: name.trim(),
+          phone: phone.trim(),
+          note: note.trim(),
+          items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+        },
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      clear();
+      setName("");
+      setPhone("");
+      setNote("");
+      setPlaced(true);
+    } catch {
+      setError("Could not place your order. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
 
   return (
     <div className="fixed inset-0 z-[60]">
