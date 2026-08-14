@@ -1,15 +1,56 @@
-import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { X, Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 
 import { useCart } from "@/lib/cart";
+import { createOrder } from "@/lib/orders.functions";
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
 export function CartDrawer() {
   const { items, open, setOpen, setQty, remove, total, clear } = useCart();
   const [placed, setPlaced] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const placeOrder = useServerFn(createOrder);
+
+  const submit = async () => {
+    setError(null);
+    if (name.trim().length < 2 || phone.trim().length < 5) {
+      setError("Please enter your name and phone number.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await placeOrder({
+        data: {
+          customerName: name.trim(),
+          phone: phone.trim(),
+          note: note.trim(),
+          items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+        },
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      clear();
+      setName("");
+      setPhone("");
+      setNote("");
+      setPlaced(true);
+    } catch {
+      setError("Could not place your order. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (!open) return null;
+
 
   return (
     <div className="fixed inset-0 z-[60]">
@@ -89,21 +130,46 @@ export function CartDrawer() {
         </div>
 
         <footer className="border-t border-border px-6 py-5">
+          {items.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                aria-label="Your name"
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 font-sans text-sm text-espresso outline-none focus:border-primary"
+              />
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Phone number"
+                aria-label="Phone number"
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 font-sans text-sm text-espresso outline-none focus:border-primary"
+              />
+              <input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Note (optional)"
+                aria-label="Note"
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 font-sans text-sm text-espresso outline-none focus:border-primary"
+              />
+            </div>
+          )}
+          {error && <p className="mb-3 font-sans text-sm text-destructive">{error}</p>}
           <div className="flex items-center justify-between">
             <span className="font-sans text-sm text-muted-foreground">Total</span>
             <span className="font-serif text-2xl font-semibold text-espresso">{money(total)}</span>
           </div>
           <button
             type="button"
-            disabled={items.length === 0}
-            onClick={() => {
-              clear();
-              setPlaced(true);
-            }}
-            className="mt-4 w-full rounded-full bg-espresso px-7 py-3 font-sans text-sm font-medium tracking-wide text-primary-foreground shadow-soft transition-all duration-300 hover:bg-primary hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={items.length === 0 || busy}
+            onClick={submit}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-espresso px-7 py-3 font-sans text-sm font-medium tracking-wide text-primary-foreground shadow-soft transition-all duration-300 hover:bg-primary hover:shadow-lift disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Place Order
+            {busy && <Loader2 className="animate-spin" size={16} />}
+            {busy ? "Placing…" : "Place Order"}
           </button>
+
         </footer>
       </aside>
     </div>
