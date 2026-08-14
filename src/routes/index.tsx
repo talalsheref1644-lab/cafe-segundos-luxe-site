@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Menu, X, Instagram, Facebook, Twitter, MapPin } from "lucide-react";
+import { Menu, X, Instagram, Facebook, Twitter, MapPin, ShoppingBag } from "lucide-react";
+
+import { useCart } from "@/lib/cart";
 
 import heroImg from "@/assets/hero-interior.jpg";
 import coffeeImg from "@/assets/coffee.jpg";
@@ -63,25 +65,28 @@ const menuCards = [
 
 const bestSellers = [
   {
+    id: "signature-latte",
     img: latteImg,
     name: "Signature Latte",
     badge: "Hot",
     desc: "Our house blend espresso with velvety steamed milk and a hint of vanilla.",
-    price: "$5.50",
+    price: 5.5,
   },
   {
+    id: "classic-cold-brew",
     img: coldBrewImg,
     name: "Classic Cold Brew",
     badge: "Cold",
     desc: "Slow-steeped for 18 hours, delivering a smooth, bold, and refreshing flavor.",
-    price: "$4.75",
+    price: 4.75,
   },
   {
+    id: "pistachio-croissant",
     img: croissantImg,
     name: "Pistachio Croissant",
     badge: "Pastry",
     desc: "Buttery, flaky layers filled with our signature roasted pistachio cream.",
-    price: "$6.00",
+    price: 6.0,
   },
 ];
 
@@ -100,6 +105,7 @@ function Divider() {
 
 function Index() {
   const [open, setOpen] = useState(false);
+  const cart = useCart();
 
   return (
     <div className="min-h-screen bg-background" id="home">
@@ -124,6 +130,19 @@ function Index() {
           </ul>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => cart.setOpen(true)}
+              aria-label={`Open cart, ${cart.count} items`}
+              className="relative rounded-full p-2 text-espresso transition-colors hover:bg-secondary"
+            >
+              <ShoppingBag size={20} />
+              {cart.count > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 font-sans text-[11px] font-semibold text-accent-foreground">
+                  {cart.count}
+                </span>
+              )}
+            </button>
             <a href="#best-sellers" className={`${btnDark} hidden sm:inline-flex`}>
               Order Now
             </a>
@@ -266,8 +285,14 @@ function Index() {
                   </div>
                   <p className="mt-3 font-sans text-sm leading-relaxed text-muted-foreground">{p.desc}</p>
                   <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
-                    <span className="font-serif text-2xl font-semibold text-espresso">{p.price}</span>
-                    <button type="button" className={btnDark}>
+                    <span className="font-serif text-2xl font-semibold text-espresso">
+                      ${p.price.toFixed(2)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => cart.add({ id: p.id, name: p.name, price: p.price, image: p.img })}
+                      className={btnDark}
+                    >
                       Order
                     </button>
                   </div>
